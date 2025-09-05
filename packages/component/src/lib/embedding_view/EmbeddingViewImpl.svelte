@@ -66,6 +66,7 @@
     pixelWidth: number,
     pixelHeight: number,
     pixelRatio: number,
+    userPointSize: number | null,
   ) {
     // Convert max density to per unit point (aka., CSS px unit).
     let viewDimension = Math.max(pixelWidth, pixelHeight) / pixelRatio;
@@ -81,8 +82,16 @@
 
     let factor = (Math.min(Math.max((scaleLevel - thresholdLevel) * 2, -1), 1) + 1) / 2;
 
-    let pointSizeAtThreshold = 0.25 / Math.sqrt(maxPointDensity);
-    let pointSize = Math.max(0.2, Math.min(5, pointSizeAtThreshold)) * pixelRatio;
+    let pointSize: number;
+    if (userPointSize != null) {
+      // Use user-provided point size, scaled by pixel ratio
+      pointSize = userPointSize * pixelRatio;
+    } else {
+      // Use automatic calculation based on density
+      let pointSizeAtThreshold = 0.25 / Math.sqrt(maxPointDensity);
+      pointSize = Math.max(0.2, Math.min(5, pointSizeAtThreshold)) * pixelRatio;
+    }
+
     let densityAlpha = 1 - factor;
     let pointsAlpha = 0.5 + factor * 0.5;
 
@@ -160,6 +169,7 @@
     rangeSelection = null,
     defaultViewportState = null,
     viewportState = null,
+    userPointSize = null,
     customTooltip = null,
     customOverlay = null,
     onViewportState = null,
@@ -236,6 +246,7 @@
       pixelWidth,
       pixelHeight,
       pixelRatio,
+      userPointSize,
     ),
   );
   let pointSize = $derived(viewingParams.pointSize);

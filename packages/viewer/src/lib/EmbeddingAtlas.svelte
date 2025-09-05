@@ -69,6 +69,7 @@
     searcher: specifiedSearcher,
     cache,
     automaticLabels,
+    pointSize = null,
     colorScheme,
     tableCellRenderers,
   }: EmbeddingAtlasProps = $props();
@@ -677,6 +678,7 @@
                 mode={embeddingViewMode}
                 minimumDensityExpFactor={minimumDensityExpFactor}
                 automaticLabels={automaticLabelsConfig}
+                pointSize={pointSize}
                 customTooltip={{
                   class: CustomTooltip,
                   props: {

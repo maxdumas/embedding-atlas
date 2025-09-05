@@ -47,6 +47,7 @@
     automaticLabels = false,
     mode = "density",
     minimumDensity = 1 / 16,
+    pointSize = null,
     customTooltip = null,
     customOverlay = null,
     onViewportState = null,
@@ -412,4 +413,5 @@
     effectiveRangeSelection = v;
     onRangeSelection?.(v);
   }}
+  userPointSize={pointSize}
 />

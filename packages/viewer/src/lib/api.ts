@@ -48,6 +48,9 @@ export interface EmbeddingAtlasProps {
   /** Set to true to enable automatic labels for the embedding */
   automaticLabels?: boolean | null;
 
+  /** Override the automatically calculated point size. If not specified, point size is calculated based on density. */
+  pointSize?: number | null;
+
   /** A cache to speed up initialization of the viewer */
   cache?: Cache | null;
 

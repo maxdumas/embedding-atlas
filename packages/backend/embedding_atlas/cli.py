@@ -202,6 +202,12 @@ def find_available_port(start_port: int, max_attempts: int = 10, host="localhost
     type=str,
     help="Export the visualization as a standalone web application to the specified ZIP file and exit.",
 )
+@click.option(
+    "--point-size",
+    type=float,
+    default=None,
+    help="Size of points in the embedding view (default: automatically calculated based on density).",
+)
 @click.version_option(version=__version__, package_name="embedding_atlas")
 def main(
     inputs,
@@ -227,6 +233,7 @@ def main(
     port: int,
     enable_auto_port: bool,
     export_application: str | None,
+    point_size: float | None,
 ):
     logging.basicConfig(
         level=logging.INFO,
@@ -313,6 +320,9 @@ def main(
             "text": text,
         },
     }
+
+    if point_size is not None:
+        metadata["point_size"] = point_size
 
     if x_column is not None and y_column is not None:
         metadata["columns"]["embedding"] = {

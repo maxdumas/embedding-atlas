@@ -6,7 +6,7 @@
   import EmbeddingAtlas from "./lib/EmbeddingAtlas.svelte";
   import Spinner from "./lib/Spinner.svelte";
 
-  import type { DataColumns, DataSource } from "./data_source.js";
+  import type { ViewerConfig, DataSource } from "./data_source.js";
   import type { EmbeddingAtlasState } from "./lib/api.js";
   import { systemDarkMode } from "./lib/dark_mode_store.js";
   import { type ExportFormat } from "./lib/mosaic_exporter.js";
@@ -25,7 +25,7 @@
   let error = $state(false);
   let status = $state("Loading...");
   let initialState: any | null = $state.raw(null);
-  let columns: DataColumns | null = $state.raw(null);
+  let columns: ViewerConfig | null = $state.raw(null);
 
   onMount(async () => {
     try {
@@ -71,6 +71,7 @@
       neighborsColumn={columns.neighbors}
       cache={dataSource.cache}
       automaticLabels={true}
+      pointSize={columns.pointSize}
       onExportApplication={dataSource.downloadArchive ? onDownloadArchive : null}
       onExportSelection={dataSource.downloadSelection ? onExportSelection : null}
       onStateChange={debounce(onStateChange, 200)}

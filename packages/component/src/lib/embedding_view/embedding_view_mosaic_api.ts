@@ -99,6 +99,9 @@ export interface EmbeddingViewMosaicProps {
    * The density is measured as number of points per square points (aka., px in CSS units). */
   minimumDensity?: number | null;
 
+  /** Override the automatically calculated point size. If not specified, point size is calculated based on density. */
+  pointSize?: number | null;
+
   /** A custom renderer to draw the tooltip content. */
   customTooltip?: CustomComponent<HTMLDivElement, { tooltip: DataPoint }> | null;
 

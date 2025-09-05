@@ -12,7 +12,7 @@ export interface Cache {
   set(key: string, value: any): Promise<void>;
 }
 
-export interface DataColumns {
+export interface ViewerConfig {
   /** The column for unique identifiers */
   id: string;
   /** The columns for the embedding view */
@@ -27,6 +27,9 @@ export interface DataColumns {
 
   /** The column for pre-computed nearest neighbors */
   neighbors?: string;
+
+  /** The point size for the embedding view */
+  pointSize?: number;
 }
 
 /** A data source for the viewer */
@@ -36,7 +39,7 @@ export interface DataSource {
     coordinator: Coordinator,
     table: string,
     onStatus: (message: string) => void,
-  ): Promise<DataColumns>;
+  ): Promise<ViewerConfig>;
 
   /** Downloads a zip archive of the dataset plus static assets of the viewer */
   downloadArchive?: () => Promise<void>;

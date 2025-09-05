@@ -4,7 +4,7 @@
 
   import Viewer from "./Viewer.svelte";
 
-  import type { DataColumns, DataSource } from "./data_source.js";
+  import type { ViewerConfig, DataSource } from "./data_source.js";
   import { initializeDatabase } from "./lib/database_utils.js";
 
   export class TestDataSource implements DataSource {
@@ -14,7 +14,7 @@
       this.count = count;
     }
 
-    async initializeCoordinator(coordinator: Coordinator, table: string): Promise<DataColumns> {
+    async initializeCoordinator(coordinator: Coordinator, table: string): Promise<ViewerConfig> {
       await initializeDatabase(coordinator, "wasm");
 
       await coordinator.exec(`
