@@ -34,12 +34,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Setup emsdk
+      - name: Set up emsdk
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: 4.0.13
 
-      - name: Setup Rust for WebAssembly
+      - name: Set up Rust for WebAssembly
         run: |
           rustup target add wasm32-unknown-unknown
           cargo install -f wasm-bindgen-cli --version 0.2.100
@@ -64,10 +64,13 @@ jobs:
         run: ./scripts/build_wasm.sh
 
       - name: Build JavaScript and Python packages
-        run: ./scripts/build.sh
+        run: npm run build
+
+      - name: Run type checks
+        run: npm run check
 
       - name: Run tests
-        run: ./scripts/test.sh
+        run: npm run test
 
       - name: Upload node package artifact
         uses: actions/upload-artifact@v4
