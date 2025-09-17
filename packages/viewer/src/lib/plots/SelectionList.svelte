@@ -11,6 +11,7 @@
   import { Context } from "../contexts.js";
   import { IconClose, IconEdit } from "../icons.js";
 
+  import { predicateToString } from "../database_utils";
   import type { PlotStateStore } from "./plot_state_store.js";
   import { syncState } from "./utils.svelte";
 
@@ -70,17 +71,6 @@
     return { name, predicate };
   }
 
-  function currentPredicate() {
-    let predicate: any = filter.predicate(null as any);
-    if (predicate == null || predicate.length == 0) {
-      return null;
-    }
-    if (typeof predicate == "string") {
-      return predicate;
-    }
-    return predicate.map((x: any) => x.toString()).join("\nAND ");
-  }
-
   // Mosaic client
   $effect.pre(() => {
     let client = makeClient({
@@ -93,7 +83,7 @@
     $effect(() => {
       if (selectedPredicates.length == 0) {
         filter.update({
-          source: client as any,
+          source: client,
           clients: new Set<MosaicClient>([client]),
           predicate: null,
           value: null,
@@ -101,7 +91,7 @@
       } else {
         let preds = selectedPredicates.map((x) => "(" + x + ")").join(" OR ");
         filter.update({
-          source: client as any,
+          source: client,
           clients: new Set<MosaicClient>([client]),
           predicate: SQL.asVerbatim(preds),
           value: preds,
@@ -239,7 +229,7 @@
         <div class="flex-1"></div>
         <button
           class="text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          onclick={() => (editingPredicate = currentPredicate()?.trim() ?? "")}>Current Predicate</button
+          onclick={() => (editingPredicate = predicateToString(filter.predicate(null)) ?? "")}>Current Predicate</button
         >
       </div>
     </div>
