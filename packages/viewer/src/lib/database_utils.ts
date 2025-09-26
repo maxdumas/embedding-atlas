@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Apple Inc. Licensed under MIT License.
 
-import { Coordinator, restConnector, socketConnector, wasmConnector, type Selection } from "@uwdata/mosaic-core";
+import { Coordinator, socketConnector, wasmConnector, type Selection } from "@uwdata/mosaic-core";
 import * as SQL from "@uwdata/mosaic-sql";
 import { format } from "d3-format";
 
@@ -9,21 +9,22 @@ import { defaultCategoryColors, defaultOrdinalColors } from "./colors.js";
 import { createDuckDB } from "./duckdb.js";
 import { plotUniqueId, type Plot } from "./plots/plot.js";
 import { makeCountPlot, makeHistogram } from "./plots/specs.js";
+import { RestConnectorWithCredentials } from "./rest_connector.js";
 
 export async function initializeDatabase(
   coordinator: Coordinator,
   type: "wasm" | "socket" | "rest",
   uri: string | null | undefined = undefined,
 ) {
-  const db = await createDuckDB();
   if (type == "wasm") {
-    const conn = await wasmConnector({ duckdb: db.duckdb, connection: db.connection });
+    const db = await createDuckDB();
+    const conn = wasmConnector({ duckdb: db.duckdb, connection: db.connection });
     coordinator.databaseConnector(conn);
   } else if (type == "socket") {
-    const conn = await socketConnector({ uri: uri ?? "" });
+    const conn = socketConnector({ uri: uri ?? "" });
     coordinator.databaseConnector(conn);
   } else if (type == "rest") {
-    const conn = await restConnector({ uri: uri ?? "" });
+    const conn = new RestConnectorWithCredentials({ uri: uri ?? "" });
     coordinator.databaseConnector(conn);
   }
 }
