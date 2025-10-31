@@ -7,7 +7,7 @@
   import Spinner from "./lib/Spinner.svelte";
 
   import type { DataSource } from "./data_source.js";
-  import type { EmbeddingAtlasProps, EmbeddingAtlasState } from "./lib/api.js";
+  import type { EmbeddingAtlasProps, EmbeddingAtlasState, Searcher } from "./lib/api.js";
   import { systemDarkMode } from "./lib/dark_mode_store.js";
   import { type ExportFormat } from "./lib/mosaic_exporter.js";
   import { debounce } from "./lib/utils.js";
@@ -17,9 +17,10 @@
 
   interface Props {
     dataSource: DataSource;
+    searcher?: Searcher;
   }
 
-  let { dataSource }: Props = $props();
+  let { dataSource, searcher }: Props = $props();
 
   let ready = $state(false);
   let error = $state(false);
@@ -68,6 +69,7 @@
         // table is loaded with the name "dataset" above.
         table: "dataset",
       }}
+      searcher={searcher}
       embeddingViewConfig={config.embeddingViewConfig}
       embeddingViewLabels={config.embeddingViewLabels}
       initialState={initialState}
