@@ -20,6 +20,7 @@
   import Spinner from "./widgets/Spinner.svelte";
 
   import {
+    IconClose,
     IconDarkMode,
     IconDashboardLayout,
     IconDownload,
@@ -370,19 +371,60 @@
           {/if}
         </div>
         <!-- Right side -->
-        <div class="flex flex-none gap-2 items-center">
+        <div
+          class="flex flex-none gap-2 items-center pl-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
+        >
           <FilteredCount coordinator={coordinator} filter={crossFilter} table={data.table} />
-          <div class="flex flex-row gap-1 items-center">
+          <div class="flex flex-row items-center">
             <button
-              class="flex px-2.5 mr-1 select-none items-center justify-center text-slate-500 dark:text-slate-300 rounded-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 focus-visible:outline-2 outline-blue-600 -outline-offset-1"
-              onclick={resetFilter}
               title="Clear filters"
+              onclick={resetFilter}
+              class="rounded-md flex select-none items-center p-1.5 text-slate-400 dark:text-slate-500 focus-visible:outline-2 outline-blue-600 -outline-offset-1"
             >
-              Clear
+              <IconClose class="w-5 h-5" />
             </button>
+
+            {#if onExportSelection}
+              <PopupButton title="Export Selection">
+                {#snippet button({ visible, toggle })}
+                  <button
+                    title="Export Selection"
+                    onclick={toggle}
+                    class="rounded-md px-1.5 py-1.5 flex select-none items-center focus-visible:outline-2 outline-blue-600 -outline-offset-1"
+                    class:text-slate-400={!visible}
+                    class:dark:text-slate-500={!visible}
+                  >
+                    <IconExport class="w-5 h-5" />
+                  </button>
+                {/snippet}
+                <div class="min-w-[420px] flex flex-col gap-2">
+                  <div class="flex flex-row gap-2">
+                    <ActionButton
+                      icon={IconExport}
+                      label="Export Selection"
+                      title="Export the selected points"
+                      class="w-48"
+                      onClick={() => onExportSelection(currentPredicate(), exportFormat)}
+                    />
+                    <Select
+                      label="Format"
+                      value={exportFormat}
+                      onChange={(v) => (exportFormat = v)}
+                      options={[
+                        { value: "parquet", label: "Parquet" },
+                        { value: "jsonl", label: "JSONL" },
+                        { value: "json", label: "JSON" },
+                        { value: "csv", label: "CSV" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </PopupButton>
+            {/if}
           </div>
         </div>
-        <div class="flex flex-none flex-row gap-0.5">
+
+        <div class="flex flex-none flex-row gap-2">
           <div class="grid grid-cols-1 grid-rows-1 justify-items-end items-center">
             {#key layout}
               <div transition:scale class="col-start-1 row-start-1">
@@ -429,41 +471,17 @@
                   }}
                 />
               {/if}
-              <!-- Export -->
-              {#if onExportSelection || onExportApplication}
+              <!-- Export Application -->
+              {#if onExportApplication}
                 <h4 class="text-slate-500 dark:text-slate-400 select-none">Export</h4>
                 <div class="flex flex-col gap-2">
-                  {#if onExportSelection}
-                    <div class="flex flex-row gap-2">
-                      <ActionButton
-                        icon={IconExport}
-                        label="Export Selection"
-                        title="Export the selected points"
-                        class="w-48"
-                        onClick={() => onExportSelection(currentPredicate(), exportFormat)}
-                      />
-                      <Select
-                        label="Format"
-                        value={exportFormat}
-                        onChange={(v) => (exportFormat = v)}
-                        options={[
-                          { value: "parquet", label: "Parquet" },
-                          { value: "jsonl", label: "JSONL" },
-                          { value: "json", label: "JSON" },
-                          { value: "csv", label: "CSV" },
-                        ]}
-                      />
-                    </div>
-                  {/if}
-                  {#if onExportApplication}
-                    <ActionButton
-                      icon={IconDownload}
-                      label="Export Application"
-                      title="Download a self-contained static web application"
-                      class="w-48"
-                      onClick={onExportApplication}
-                    />
-                  {/if}
+                  <ActionButton
+                    icon={IconDownload}
+                    label="Export Application"
+                    title="Download a self-contained static web application"
+                    class="w-48"
+                    onClick={onExportApplication}
+                  />
                 </div>
               {/if}
               <h4 class="text-slate-500 dark:text-slate-400 select-none">About</h4>
