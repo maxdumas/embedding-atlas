@@ -18,8 +18,9 @@ import { gpuBuffer, gpuBufferData, gpuTexture } from "./utils.js";
 
 import { makeAccumulateCommand } from "./accumulate.js";
 import { makeBindGroups } from "./bind_groups.js";
+import { makeDownsampleCommand, makeDownsampleResources, type DownsampleConfig } from "./downsample.js";
 import { makeDrawDensityMapCommand } from "./draw_density_map.js";
-import { makeDrawPointsCommand } from "./draw_points.js";
+import { makeDrawPointsCommand, makeDrawPointsIndexedCommand } from "./draw_points.js";
 import { makeGammaCorrectionCommand } from "./gamma_correction.js";
 import { makeGaussianBlurCommand } from "./gaussian_blur.js";
 import { kdeConfig } from "./kde_config.js";
@@ -69,6 +70,9 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
       gamma: 2.2,
       width: width,
       height: height,
+
+      renderLimit: 1000000,
+      downsampleDensityWeight: 5,
     };
 
     this.viewport = new Viewport({ x: 0, y: 0, scale: 1 }, width, height);
@@ -88,6 +92,8 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
       height: df.value(height),
       pointSize: df.value(this.props.pointSize),
       densityBandwidth: df.value(this.props.densityBandwidth),
+      renderLimit: df.value(this.props.renderLimit),
+      downsampleDensityWeight: df.value(this.props.downsampleDensityWeight),
     };
     this.device = df.value(device);
     this.dataBuffers = makeDataBuffers(df, this.device, this.renderInputs);
@@ -135,6 +141,8 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
     this.renderInputs.height.value = this.props.height;
     this.renderInputs.pointSize.value = this.props.pointSize;
     this.renderInputs.densityBandwidth.value = this.props.densityBandwidth;
+    this.renderInputs.renderLimit.value = this.props.renderLimit;
+    this.renderInputs.downsampleDensityWeight.value = this.props.downsampleDensityWeight;
     return needsRender;
   }
 
@@ -191,6 +199,8 @@ export interface RenderInputs {
   matrix: ValueNode<Matrix3>;
   width: ValueNode<number>;
   height: ValueNode<number>;
+  renderLimit: ValueNode<number>;
+  downsampleDensityWeight: ValueNode<number>;
 }
 
 export interface DataBuffers {
@@ -300,11 +310,37 @@ function makeRenderCommand(
   );
   let bindGroups = makeBindGroups(df, device, uniforms.buffer, dataBuffers, auxiliaryResources);
 
+  // Create downsampling resources
+  let downsampleResources = makeDownsampleResources(df, device, dataBuffers.count, inputs.renderLimit);
+
   let accumulate = makeAccumulateCommand(df, device, module, bindGroups, dataBuffers, auxiliaryResources);
   let drawPoints = makeDrawPointsCommand(df, device, module, bindGroups, dataBuffers, auxiliaryResources);
+  let drawPointsIndexed = makeDrawPointsIndexedCommand(
+    df,
+    device,
+    module,
+    bindGroups,
+    downsampleResources,
+    auxiliaryResources,
+  );
   let drawDensityMap = makeDrawDensityMapCommand(df, device, module, bindGroups, auxiliaryResources);
   let gammaCorrection = makeGammaCorrectionCommand(df, device, module, format, bindGroups);
   let gaussianBlur = makeGaussianBlurCommand(df, device, module, bindGroups, fbWidth, fbHeight, inputs.categoryCount);
+
+  // Create downsampling command
+  let layoutsNode = df.derive([bindGroups.layouts], (layouts) => layouts);
+  let downsample = makeDownsampleCommand(
+    df,
+    device,
+    module,
+    df.derive([layoutsNode], (l) => l.group0),
+    df.derive([layoutsNode], (l) => l.group1),
+    auxiliaryResources.blurBuffer, // Pass blur buffer directly for density lookup
+    bindGroups.group0,
+    bindGroups.group1,
+    downsampleResources,
+    dataBuffers,
+  );
 
   let kde_coeffs = df.derive(
     [inputs.densityBandwidth, fbWidth, densityWidth],
@@ -320,6 +356,7 @@ function makeRenderCommand(
     },
   );
 
+
   return df.derive(
     [
       device,
@@ -332,10 +369,12 @@ function makeRenderCommand(
       inputs.matrix,
       categoryColors,
       drawPoints,
+      drawPointsIndexed,
       gammaCorrection,
       accumulate,
       gaussianBlur,
       drawDensityMap,
+      downsample,
       kde_coeffs,
     ],
     (
@@ -349,10 +388,12 @@ function makeRenderCommand(
       positionMatrix: Matrix3,
       categoryColors,
       drawPoints,
+      drawPointsIndexed,
       gammaCorrection,
       accumulate,
       gaussianBlur,
       drawDensityMap,
+      downsample,
       kde_coeffs,
     ) =>
       (props, textureView) => {
@@ -384,15 +425,50 @@ function makeRenderCommand(
           background_color: backgroundColor,
           category_colors: categoryColors,
         });
+
         let encoder = device.createCommandEncoder();
-        drawPoints(encoder);
-        if (props.mode == "density") {
-          if (props.densityAlpha > 0 || props.contoursAlpha > 0) {
-            accumulate(encoder);
-            gaussianBlur(encoder);
-            drawDensityMap(encoder);
+
+        // Check if downsampling is enabled
+        const renderLimit = props.renderLimit;
+        const useDownsampling = renderLimit > 0 && count > renderLimit;
+
+        if (useDownsampling) {
+          // First, compute density for all points (needed for density-based sampling)
+          accumulate(encoder);
+          gaussianBlur(encoder);
+
+          // Run downsampling pipeline with fixed seed for deterministic sampling
+          // Using 0 ensures the same points are always accepted/rejected
+          // Viewport culling handles which points are visible
+          const downsampleConfig: DownsampleConfig = {
+            renderLimit: renderLimit,
+            densityWeight: props.downsampleDensityWeight,
+            frameSeed: 0,
+          };
+          const sampledCount = downsample(encoder, downsampleConfig);
+
+          // Draw downsampled points
+          drawPointsIndexed(encoder, sampledCount);
+
+          // If in density mode, also draw density overlay (using all points, already computed)
+          if (props.mode == "density") {
+            if (props.densityAlpha > 0 || props.contoursAlpha > 0) {
+              drawDensityMap(encoder);
+            }
+          }
+        } else {
+          // No downsampling needed - use original path
+          drawPoints(encoder);
+
+          if (props.mode == "density") {
+            if (props.densityAlpha > 0 || props.contoursAlpha > 0) {
+              accumulate(encoder);
+              gaussianBlur(encoder);
+              drawDensityMap(encoder);
+            }
           }
         }
+
         gammaCorrection(encoder, textureView);
         device.queue.submit([encoder.finish()]);
       },

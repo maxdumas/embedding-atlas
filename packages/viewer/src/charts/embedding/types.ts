@@ -14,5 +14,7 @@ export interface EmbeddingSpec {
   mode?: "points" | "density";
   minimumDensity?: number;
   pointSize?: number;
+  /** Maximum number of points to render (for downsampling). Default: 250000 */
+  renderLimit?: number;
   config?: EmbeddingViewConfig;
 }

@@ -225,6 +225,8 @@
   let userPointSize = $derived(config?.pointSize ?? null);
   let mode = $derived(config?.mode ?? "points");
   let autoLabelEnabled = $derived(config?.autoLabelEnabled);
+  let renderLimit = $derived(config?.renderLimit ?? 1000000);
+  let downsampleDensityWeight = $derived(config?.downsampleDensityWeight ?? 5);
 
   let viewingParams = $derived(
     viewingParameters(
@@ -256,6 +258,8 @@
       category: data.category,
       categoryCount,
       categoryColors: resolvedCategoryColors,
+      renderLimit,
+      downsampleDensityWeight,
       ...viewingParams,
     });
 

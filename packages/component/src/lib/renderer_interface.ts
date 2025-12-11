@@ -32,6 +32,11 @@ export interface EmbeddingRendererProps {
   gamma: number;
   width: number;
   height: number;
+
+  /** Maximum points to render (0 = no limit). Default: 1000000 */
+  renderLimit: number;
+  /** Density weight for downsampling (0-10). Default: 5 */
+  downsampleDensityWeight: number;
 }
 
 export interface DensityMap {
