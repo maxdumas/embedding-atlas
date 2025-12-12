@@ -97,20 +97,16 @@ export function makeDownsampleResources(
   // Bind group layout for indexed draw pipeline group 2 (vertex shader - read-only access to index buffer)
   const vertexBindGroupLayout = df.derive([device], (device) =>
     device.createBindGroupLayout({
-      entries: [
-        { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } },
-      ],
+      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } }],
     }),
   );
 
   // Bind group for indexed draw pipeline group 2 (vertex)
-  const vertexBindGroup = df.derive(
-    [device, vertexBindGroupLayout, indexBuffer],
-    (device, layout, index) =>
-      device.createBindGroup({
-        layout,
-        entries: [{ binding: 0, resource: { buffer: index } }],
-      }),
+  const vertexBindGroup = df.derive([device, vertexBindGroupLayout, indexBuffer], (device, layout, index) =>
+    device.createBindGroup({
+      layout,
+      entries: [{ binding: 0, resource: { buffer: index } }],
+    }),
   );
 
   return {
@@ -143,9 +139,7 @@ export function makeDownsampleCommand(
   // Note: Must match shader declaration which uses read_write (even though we only read)
   const blurOnlyLayout = df.derive([device], (device) =>
     device.createBindGroupLayout({
-      entries: [
-        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
-      ],
+      entries: [{ binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } }],
     }),
   );
 
@@ -157,9 +151,7 @@ export function makeDownsampleCommand(
   );
 
   // Create empty layouts for unused group 3 in viewport_cull
-  const emptyLayout = df.derive([device], (device) =>
-    device.createBindGroupLayout({ entries: [] }),
-  );
+  const emptyLayout = df.derive([device], (device) => device.createBindGroupLayout({ entries: [] }));
   const emptyBindGroup = df.derive([device, emptyLayout], (device, layout) =>
     device.createBindGroup({ layout, entries: [] }),
   );

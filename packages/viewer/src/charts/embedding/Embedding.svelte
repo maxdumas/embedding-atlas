@@ -327,9 +327,17 @@
             {@const effectiveLimit = spec.renderLimit ?? Math.min(defaultRenderLimit, totalPointCount)}
             {@const isMaxed = effectiveLimit >= totalPointCount}
             <div class="text-slate-500 dark:text-slate-400 select-none">
-              Render Limit: {isMaxed ? "All" : effectiveLimit >= 1000000 ? (effectiveLimit / 1000000).toFixed(1) + "M" : (effectiveLimit / 1000).toFixed(0) + "K"}
+              Render Limit: {isMaxed
+                ? "All"
+                : effectiveLimit >= 1000000
+                  ? (effectiveLimit / 1000000).toFixed(1) + "M"
+                  : (effectiveLimit / 1000).toFixed(0) + "K"}
               {#if !isMaxed}
-                <span class="text-slate-400 dark:text-slate-500">/ {totalPointCount >= 1000000 ? (totalPointCount / 1000000).toFixed(1) + "M" : (totalPointCount / 1000).toFixed(0) + "K"}</span>
+                <span class="text-slate-400 dark:text-slate-500"
+                  >/ {totalPointCount >= 1000000
+                    ? (totalPointCount / 1000000).toFixed(1) + "M"
+                    : (totalPointCount / 1000).toFixed(0) + "K"}</span
+                >
               {/if}
             </div>
             <div class="flex gap-2 items-center">

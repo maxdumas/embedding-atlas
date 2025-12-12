@@ -356,7 +356,6 @@ function makeRenderCommand(
     },
   );
 
-
   return df.derive(
     [
       device,
