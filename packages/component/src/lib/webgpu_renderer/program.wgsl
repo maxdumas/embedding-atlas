@@ -397,9 +397,13 @@ fn random_float(seed: u32) -> f32 {
 // =====================================================
 // Downsampling Pass 1: Viewport culling + density lookup
 // =====================================================
+// Uses 2D dispatch for large point counts (>65K workgroups)
+// Stride: 256 workgroups * 256 threads = 65536 threads per row
+const DOWNSAMPLE_STRIDE: u32 = 65536u;
+
 @compute @workgroup_size(256)
 fn downsample_viewport_cull(@builtin(global_invocation_id) id: vec3<u32>) {
-  let index = id.x;
+  let index = id.y * DOWNSAMPLE_STRIDE + id.x;
   if (index >= uniforms.count) { return; }
 
   let point = get_point(index);
@@ -443,7 +447,7 @@ fn downsample_viewport_cull(@builtin(global_invocation_id) id: vec3<u32>) {
 // =====================================================
 @compute @workgroup_size(256)
 fn downsample_density_sample(@builtin(global_invocation_id) id: vec3<u32>) {
-  let index = id.x;
+  let index = id.y * DOWNSAMPLE_STRIDE + id.x;
   if (index >= uniforms.count) { return; }
 
   let density = point_data[index];
@@ -496,7 +500,7 @@ fn downsample_density_sample(@builtin(global_invocation_id) id: vec3<u32>) {
 // This works across any number of points without complex prefix sum
 @compute @workgroup_size(256)
 fn downsample_compact(@builtin(global_invocation_id) id: vec3<u32>) {
-  let index = id.x;
+  let index = id.y * DOWNSAMPLE_STRIDE + id.x;
   if (index >= uniforms.count) { return; }
 
   // point_data > 0 means accepted

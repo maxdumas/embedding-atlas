@@ -5,6 +5,21 @@ import type { DataBuffers } from "./renderer.js";
 import { gpuBuffer } from "./utils.js";
 
 const WORKGROUP_SIZE = 256;
+// Fixed X workgroups count for 2D dispatch (256 * 256 = 65536 threads per row)
+// This matches the stride used in the shader: id.y * 65536 + id.x
+const WORKGROUPS_X = 256;
+const THREADS_PER_ROW = WORKGROUPS_X * WORKGROUP_SIZE; // 65536
+
+// Helper to compute 2D dispatch dimensions for large point counts
+function computeDispatch(count: number): [number, number] {
+  const totalWorkgroups = Math.ceil(count / WORKGROUP_SIZE);
+  if (totalWorkgroups <= WORKGROUPS_X) {
+    return [totalWorkgroups, 1];
+  }
+  // Use 2D dispatch with fixed X stride
+  const y = Math.ceil(count / THREADS_PER_ROW);
+  return [WORKGROUPS_X, y];
+}
 
 export interface DownsampleResources {
   uniformBuffer: Node<GPUBuffer>;
@@ -227,7 +242,7 @@ export function makeDownsampleCommand(
         // Clear counters
         encoder.clearBuffer(countersBuffer);
 
-        const workgroups = Math.ceil(count / WORKGROUP_SIZE);
+        const [workgroupsX, workgroupsY] = computeDispatch(count);
 
         // Pass 1: Viewport culling + density lookup (needs blur_buffer for density)
         // Pipeline layout: [group0, group1, blurOnly, group3]
@@ -238,7 +253,7 @@ export function makeDownsampleCommand(
           pass.setBindGroup(1, group1);
           pass.setBindGroup(2, group2Blur);
           pass.setBindGroup(3, group3);
-          pass.dispatchWorkgroups(workgroups);
+          pass.dispatchWorkgroups(workgroupsX, workgroupsY);
           pass.end();
         }
 
@@ -251,7 +266,7 @@ export function makeDownsampleCommand(
           pass.setBindGroup(1, group1);
           pass.setBindGroup(2, emptyGroup);
           pass.setBindGroup(3, group3);
-          pass.dispatchWorkgroups(workgroups);
+          pass.dispatchWorkgroups(workgroupsX, workgroupsY);
           pass.end();
         }
 
@@ -263,7 +278,7 @@ export function makeDownsampleCommand(
           pass.setBindGroup(1, group1);
           pass.setBindGroup(2, emptyGroup);
           pass.setBindGroup(3, group3);
-          pass.dispatchWorkgroups(workgroups);
+          pass.dispatchWorkgroups(workgroupsX, workgroupsY);
           pass.end();
         }
 
