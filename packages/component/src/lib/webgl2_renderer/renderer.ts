@@ -62,7 +62,7 @@ export class EmbeddingRendererWebGL2 implements EmbeddingRenderer {
       width: width,
       height: height,
 
-      renderLimit: 1000000,
+      downsampleMaxPoints: 4000000,
       downsampleDensityWeight: 5,
     };
 
@@ -84,7 +84,7 @@ export class EmbeddingRendererWebGL2 implements EmbeddingRenderer {
       height: df.value(height),
       pointSize: df.value(this.props.pointSize),
       densityBandwidth: df.value(this.props.densityBandwidth),
-      renderLimit: df.value(this.props.renderLimit),
+      downsampleMaxPoints: df.value(this.props.downsampleMaxPoints),
       downsampleDensityWeight: df.value(this.props.downsampleDensityWeight),
     };
     this.dataBuffers = dataBuffers(df, gl, this.renderInputs);
@@ -121,7 +121,7 @@ export class EmbeddingRendererWebGL2 implements EmbeddingRenderer {
     this.renderInputs.height.value = this.props.height;
     this.renderInputs.pointSize.value = this.props.pointSize;
     this.renderInputs.densityBandwidth.value = this.props.densityBandwidth;
-    this.renderInputs.renderLimit.value = this.props.renderLimit;
+    this.renderInputs.downsampleMaxPoints.value = this.props.downsampleMaxPoints;
     this.renderInputs.downsampleDensityWeight.value = this.props.downsampleDensityWeight;
     return needsRender;
   }
@@ -168,7 +168,7 @@ interface RenderInputs {
   matrix: ValueNode<Matrix3>;
   width: ValueNode<number>;
   height: ValueNode<number>;
-  renderLimit: ValueNode<number>;
+  downsampleMaxPoints: ValueNode<number | null>;
   downsampleDensityWeight: ValueNode<number>;
 }
 

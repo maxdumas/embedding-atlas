@@ -31,8 +31,8 @@ export interface EmbeddingViewConfig {
 
   /** Maximum number of points to render when downsampling is active.
    * Points are sampled with bias toward sparse regions (fewer points kept in dense areas).
-   * Default: 1000000. Set to 0 to disable downsampling. */
-  renderLimit?: number | null;
+   * Default: 4000000. Set to null or Infinity to disable downsampling. */
+  downsampleMaxPoints?: number | null;
 
   /** Density weight for downsampling (0-10).
    * Higher values mean more aggressive culling in dense areas.

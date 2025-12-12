@@ -35,7 +35,7 @@ export interface DownsampleResources {
 }
 
 export interface DownsampleConfig {
-  renderLimit: number;
+  maxPoints: number;
   densityWeight: number;
   frameSeed: number;
 }
@@ -44,7 +44,7 @@ export function makeDownsampleResources(
   df: Dataflow,
   device: Node<GPUDevice>,
   count: Node<number>,
-  renderLimit: Node<number>,
+  downsampleMaxPoints: Node<number | null>,
 ): DownsampleResources {
   const usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
 
@@ -62,8 +62,8 @@ export function makeDownsampleResources(
   // Merged buffer: stores density (>0 = visible+accepted, <=0 = not visible or rejected)
   const pointDataBuffer = df.statefulDerive([device, pointBufferSize, usage], gpuBuffer);
 
-  // Index buffer: sized for render limit
-  const indexBufferSize = df.derive([renderLimit], (limit) => Math.max(4, limit * 4));
+  // Index buffer: sized for max points (use default 4M if null)
+  const indexBufferSize = df.derive([downsampleMaxPoints], (limit) => Math.max(4, (limit ?? 4000000) * 4));
   const indexBuffer = df.statefulDerive([device, indexBufferSize, usage], gpuBuffer);
 
   // Bind group layout for group 3 (compute shaders - read_write access)
@@ -218,14 +218,14 @@ export function makeDownsampleCommand(
       count,
     ) =>
       (encoder, config) => {
-        if (count === 0 || config.renderLimit === 0) {
+        if (count === 0 || config.maxPoints <= 0) {
           return 0;
         }
 
         // Update uniform buffer
         const uniformData = new ArrayBuffer(16);
         const uniformView = new DataView(uniformData);
-        uniformView.setUint32(0, config.renderLimit, true);
+        uniformView.setUint32(0, config.maxPoints, true);
         uniformView.setUint32(4, config.frameSeed, true);
         uniformView.setFloat32(8, config.densityWeight, true);
         uniformView.setFloat32(12, 0, true); // padding
@@ -274,9 +274,9 @@ export function makeDownsampleCommand(
           pass.end();
         }
 
-        // Return the render limit as the max possible count
-        // The actual count will be determined by the GPU, but we use render_limit as upper bound
-        return Math.min(count, config.renderLimit);
+        // Return the max points as the max possible count
+        // The actual count will be determined by the GPU, but we use maxPoints as upper bound
+        return Math.min(count, config.maxPoints);
       },
   );
 }

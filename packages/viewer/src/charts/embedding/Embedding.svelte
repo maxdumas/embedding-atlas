@@ -61,8 +61,8 @@
 
   const maxCategories = Math.min(20, maxDensityModeCategories());
   const defaultMinimumDensity = 1 / 16;
-  const defaultRenderLimit = 1000000;
-  const minRenderLimit = 50000;
+  const defaultDownsampleMaxPoints = 4000000;
+  const minDownsampleMaxPoints = 50000;
 
   let {
     context,
@@ -222,7 +222,7 @@
       mode: spec.mode ?? "points",
       ...(spec.minimumDensity != null ? { minimumDensity: spec.minimumDensity } : {}),
       ...(spec.pointSize != null ? { pointSize: spec.pointSize } : {}),
-      renderLimit: spec.renderLimit ?? defaultRenderLimit,
+      downsampleMaxPoints: spec.downsampleMaxPoints ?? defaultDownsampleMaxPoints,
     }}
     labels={context.embeddingViewLabels}
     cache={context.persistentCache}
@@ -323,11 +323,11 @@
             />
             <Button label="Auto" onClick={() => onSpecChange({ pointSize: undefined })} />
           </div>
-          {#if totalPointCount != null && totalPointCount > minRenderLimit}
-            {@const effectiveLimit = spec.renderLimit ?? Math.min(defaultRenderLimit, totalPointCount)}
+          {#if totalPointCount != null && totalPointCount > minDownsampleMaxPoints}
+            {@const effectiveLimit = spec.downsampleMaxPoints ?? Math.min(defaultDownsampleMaxPoints, totalPointCount)}
             {@const isMaxed = effectiveLimit >= totalPointCount}
             <div class="text-slate-500 dark:text-slate-400 select-none">
-              Render Limit: {isMaxed
+              Max Points: {isMaxed
                 ? "All"
                 : effectiveLimit >= 1000000
                   ? (effectiveLimit / 1000000).toFixed(1) + "M"
@@ -343,10 +343,12 @@
             <div class="flex gap-2 items-center">
               <Slider
                 bind:value={
-                  () => spec.renderLimit ?? Math.min(defaultRenderLimit, totalPointCount ?? defaultRenderLimit),
-                  (v) => onSpecChange({ renderLimit: v })
+                  () =>
+                    spec.downsampleMaxPoints ??
+                    Math.min(defaultDownsampleMaxPoints, totalPointCount ?? defaultDownsampleMaxPoints),
+                  (v) => onSpecChange({ downsampleMaxPoints: v })
                 }
-                min={minRenderLimit}
+                min={minDownsampleMaxPoints}
                 max={totalPointCount}
                 step={Math.max(10000, Math.floor(totalPointCount / 100 / 10000) * 10000)}
               />

@@ -19,7 +19,7 @@
   let mode: "points" | "density" = $state.raw("density");
   let colorScheme: "light" | "dark" = $state.raw("light");
   let minimumDensity: number = $state.raw(1 / 16);
-  let renderLimit: number | null = $state.raw(1000000);
+  let downsampleMaxPoints: number | null = $state.raw(4000000);
   let viewportState: ViewportState | null = $state.raw(null);
 
   async function querySelection(x: number, y: number, unitDistance: number): Promise<DataPoint | null> {
@@ -67,14 +67,16 @@
   </label>
 
   <label style="display:flex;align-items:center;gap:4px">
-    Render Limit:
-    {#if renderLimit != null}
-      <input type="range" bind:value={renderLimit} min={50000} max={50000000} step={50000} />
-      {renderLimit >= 1000000 ? (renderLimit / 1000000).toFixed(1) + "M" : (renderLimit / 1000).toFixed(0) + "K"}
-      <button onclick={() => (renderLimit = null)}>Disable</button>
+    Max Points:
+    {#if downsampleMaxPoints != null}
+      <input type="range" bind:value={downsampleMaxPoints} min={50000} max={50000000} step={50000} />
+      {downsampleMaxPoints >= 1000000
+        ? (downsampleMaxPoints / 1000000).toFixed(1) + "M"
+        : (downsampleMaxPoints / 1000).toFixed(0) + "K"}
+      <button onclick={() => (downsampleMaxPoints = null)}>Disable</button>
     {:else}
       <span>Disabled</span>
-      <button onclick={() => (renderLimit = 1000000)}>Enable</button>
+      <button onclick={() => (downsampleMaxPoints = 4000000)}>Enable</button>
     {/if}
   </label>
 </div>
@@ -83,7 +85,12 @@
   <div style:border="1px solid black">
     <EmbeddingView
       data={data}
-      config={{ mode: mode, colorScheme: colorScheme, minimumDensity: minimumDensity, renderLimit: renderLimit }}
+      config={{
+        mode: mode,
+        colorScheme: colorScheme,
+        minimumDensity: minimumDensity,
+        downsampleMaxPoints: downsampleMaxPoints,
+      }}
       tooltip={tooltip}
       onTooltip={(v) => {
         tooltip = v;

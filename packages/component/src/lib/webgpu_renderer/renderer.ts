@@ -71,7 +71,7 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
       width: width,
       height: height,
 
-      renderLimit: 1000000,
+      downsampleMaxPoints: 4000000,
       downsampleDensityWeight: 5,
     };
 
@@ -92,7 +92,7 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
       height: df.value(height),
       pointSize: df.value(this.props.pointSize),
       densityBandwidth: df.value(this.props.densityBandwidth),
-      renderLimit: df.value(this.props.renderLimit),
+      downsampleMaxPoints: df.value(this.props.downsampleMaxPoints),
       downsampleDensityWeight: df.value(this.props.downsampleDensityWeight),
     };
     this.device = df.value(device);
@@ -141,7 +141,7 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
     this.renderInputs.height.value = this.props.height;
     this.renderInputs.pointSize.value = this.props.pointSize;
     this.renderInputs.densityBandwidth.value = this.props.densityBandwidth;
-    this.renderInputs.renderLimit.value = this.props.renderLimit;
+    this.renderInputs.downsampleMaxPoints.value = this.props.downsampleMaxPoints;
     this.renderInputs.downsampleDensityWeight.value = this.props.downsampleDensityWeight;
     return needsRender;
   }
@@ -199,7 +199,7 @@ export interface RenderInputs {
   matrix: ValueNode<Matrix3>;
   width: ValueNode<number>;
   height: ValueNode<number>;
-  renderLimit: ValueNode<number>;
+  downsampleMaxPoints: ValueNode<number | null>;
   downsampleDensityWeight: ValueNode<number>;
 }
 
@@ -311,7 +311,7 @@ function makeRenderCommand(
   let bindGroups = makeBindGroups(df, device, uniforms.buffer, dataBuffers, auxiliaryResources);
 
   // Create downsampling resources
-  let downsampleResources = makeDownsampleResources(df, device, dataBuffers.count, inputs.renderLimit);
+  let downsampleResources = makeDownsampleResources(df, device, dataBuffers.count, inputs.downsampleMaxPoints);
 
   let accumulate = makeAccumulateCommand(df, device, module, bindGroups, dataBuffers, auxiliaryResources);
   let drawPoints = makeDrawPointsCommand(df, device, module, bindGroups, dataBuffers, auxiliaryResources);
@@ -428,8 +428,13 @@ function makeRenderCommand(
         let encoder = device.createCommandEncoder();
 
         // Check if downsampling is enabled
-        const renderLimit = props.renderLimit;
-        const useDownsampling = renderLimit > 0 && count > renderLimit;
+        // Normalize the maxPoints value: null, Infinity, or invalid values (<=0, NaN) disable downsampling
+        const maxPoints = props.downsampleMaxPoints;
+        const effectiveMaxPoints =
+          maxPoints === null || maxPoints === Infinity || !Number.isFinite(maxPoints) || maxPoints <= 0
+            ? null
+            : maxPoints;
+        const useDownsampling = effectiveMaxPoints !== null && count > effectiveMaxPoints;
 
         if (useDownsampling) {
           // First, compute density for all points (needed for density-based sampling)
@@ -440,7 +445,7 @@ function makeRenderCommand(
           // Using 0 ensures the same points are always accepted/rejected
           // Viewport culling handles which points are visible
           const downsampleConfig: DownsampleConfig = {
-            renderLimit: renderLimit,
+            maxPoints: effectiveMaxPoints!,
             densityWeight: props.downsampleDensityWeight,
             frameSeed: 0,
           };
